@@ -6,41 +6,41 @@ pipeline {
         maven 'M2_HOME'
     }
 
+    environment {
+        DOCKER_IMAGE = "emna-jridi/student-management"
+    }
+
     stages {
-        stage('GIT') {
+
+        stage('Compile Stage') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/emna-jridi/Emna-JRIDI-4SIM3.git'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage ('Compile Stage') {
-            steps {
-                sh 'mvn clean compile'
-            }
-        }
- 
         stage('Build Docker Image') {
             steps {
-                sh """
-                    docker build -t ${DOCKER_IMAGE}:latest .
-                """
+                sh '''
+                  docker build -t $DOCKER_IMAGE:latest .
+                '''
             }
         }
 
         stage('Login to DockerHub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh 'echo $PASS | docker login -u $USER --password-stdin'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                 }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh """
-                    docker push ${DOCKER_IMAGE}:latest
-                """
+                sh 'docker push $DOCKER_IMAGE:latest'
             }
         }
     }
